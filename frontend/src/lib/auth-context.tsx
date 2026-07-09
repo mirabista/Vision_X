@@ -110,7 +110,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string): Promise<AuthResult> => {
+  // const signUp = async (email: string, password: string, fullName: string): Promise<AuthResult> => {
+  //   try {
+  //     const { data, error } = await supabase.auth.signUp({
+  //       email,
+  //       password,
+  //       options: { data: { full_name: fullName } },
+  //     });
+
+  //     if (error) {
+  //       return { success: false, error: error.message || "Registration failed" };
+  //     }
+
+  //     return { success: true };
+  //   } catch (err: any) {
+  //     console.error("SignUp error:", err);
+  //     return { success: false, error: err.message || "Registration failed" };
+  //   }
+  // };
+
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string
+  ): Promise<AuthResult> => {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const response = await fetch(`${API_URL}/api/auth/register`, {
@@ -147,11 +170,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { success: true };
     } catch (err: any) {
-      console.error("SignUp error:", err);
-      return { success: false, error: err.message || "Registration failed" };
+      console.error("SignUp exception:", err);
+
+      return {
+        success: false,
+        error:
+          err?.message && err.message !== "{}"
+            ? err.message
+            : "Registration failed. Please check your Supabase configuration.",
+      };
     }
   };
-
   const signOut = async () => {
     await supabase.auth.signOut();
   };
