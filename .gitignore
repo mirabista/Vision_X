@@ -157,6 +157,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+/backend/requirements.txt
+
 # ===========================================
 # SOURCE CODE TO ALWAYS TRACK
 # (These are explicitly allowed through negation)

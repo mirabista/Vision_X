@@ -104,6 +104,11 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 
+# Load root and backend .env files before importing settings or dependent modules.
+ROOT_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+BACKEND_ENV_PATH = Path(__file__).resolve().parent / ".env"
+load_dotenv(ROOT_ENV_PATH, override=True)
+load_dotenv(BACKEND_ENV_PATH, override=True)
 # Load backend/.env before importing settings or any module that depends on settings.
 ENV_PATH = Path(__file__).resolve().parent / ".env"
 load_dotenv(ENV_PATH, override=True)

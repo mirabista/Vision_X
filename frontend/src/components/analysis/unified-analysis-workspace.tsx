@@ -14,7 +14,7 @@ import { apiClient } from "@/lib/api-client";
 import {
   ShieldCheck, Newspaper, FileText, Download, Loader2,
   CheckCircle2, AlertTriangle, XCircle, Clock,
-  ExternalLink, Copy, RefreshCw, Image
+  ExternalLink, Copy, RefreshCw, Image, Video
 } from "lucide-react";
 
 export default function UnifiedAnalysisWorkspace({ analysisId, module: moduleProp }: { analysisId: string; module?: string }) {
@@ -48,6 +48,8 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
         ? await apiClient.getNewsAnalysis(analysisId)
         : await apiClient.getAnalysisJob(analysisId);
       const analysis = result.analysis || result.job || result;
+      const inferredModule = analysis.module_type || analysis.module || moduleProp || "image";
+      setModule(inferredModule);
 
       // If analysis has a report_id, redirect to report page
       if (analysis.report_id) {
@@ -154,11 +156,11 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-                {module === "news" ? <Newspaper className="w-6 h-6 text-white" /> : <Image className="w-6 h-6 text-white" />}
+                {module === "news" ? <Newspaper className="w-6 h-6 text-white" /> : module === "video" ? <Video className="w-6 h-6 text-white" /> : <Image className="w-6 h-6 text-white" />}
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-text">
-                  {module === "news" ? "News" : "Image"} Analysis {analysisId.slice(0, 8)}...
+                  {module === "news" ? "News" : module === "video" ? "Video" : "Image"} Analysis {analysisId.slice(0, 8)}...
                 </h1>
                 <p className="text-sm text-muted">
                   {analysis.title || analysis.input_content?.slice(0, 100) || "Analysis"}

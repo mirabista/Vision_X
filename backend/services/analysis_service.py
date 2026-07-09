@@ -6,7 +6,6 @@ Uses direct Supabase client access instead of repository dependency.
 from __future__ import annotations
 
 import uuid
-import os
 import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
@@ -16,6 +15,7 @@ from backend.core.exceptions import AnalysisError, ValidationError
 from backend.events.event_bus import event_bus
 from backend.database.supabase_client import get_supabase_client
 from backend.services.agents.pipeline_orchestrator import pipeline_orchestrator
+from backend.services.video_analysis_service import video_analysis_service
 
 logger = get_logger(__name__)
 
@@ -131,15 +131,23 @@ class AnalysisService:
 
             # Run real pipeline
             try:
-                pipeline_result = await pipeline_orchestrator.run(
-                    analysis_id=analysis_id,
-                    module=module,
-                    user_id=user_id,
-                    input_content=input_content,
-                    input_type=input_type,
-                    source_url=source_url,
-                    title=title,
-                )
+                if module == "video":
+                    pipeline_result = await video_analysis_service.analyze_video(
+                        user_id=user_id,
+                        video_path=input_content,
+                        title=title,
+                        analysis_id=analysis_id,
+                    )
+                else:
+                    pipeline_result = await pipeline_orchestrator.run(
+                        analysis_id=analysis_id,
+                        module=module,
+                        user_id=user_id,
+                        input_content=input_content,
+                        input_type=input_type,
+                        source_url=source_url,
+                        title=title,
+                    )
 
                 # Update to completed
                 now = datetime.now(timezone.utc).isoformat()
@@ -164,15 +172,11 @@ class AnalysisService:
                         # Build pdf_url from pdf_path if available
                         pdf_url = None
                         if pdf_path:
-                            # Convert local path to accessible URL
-                            # For local development, use file:// or serve via API
-                            pdf_filename = os.path.basename(pdf_path)
                             pdf_url = f"/api/reports/{analysis_id}/pdf"
                         
                         self._table("reports").insert({
                             "user_id": user_id,
                             "analysis_id": analysis_id,
-                            "upload_id": metadata.get("upload_id") if metadata else None,
                             "title": title or f"Analysis {analysis_id[:8]}",
                             "trust_score": report_data.get("executive_summary", {}).get("trust_score", 0),
                             "authenticity_status": report_data.get("executive_summary", {}).get("verdict", "unknown"),
