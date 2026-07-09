@@ -182,10 +182,20 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
               <Card>
                 <CardContent className="p-6">
                   <div className="text-center">
-                    <p className="text-sm text-muted mb-2">Authenticity Score</p>
-                    <p className={`text-4xl font-bold ${getScoreColor((analysis.overall_confidence || 0) * 100)}`}>
-                      {Math.round((analysis.overall_confidence || 0) * 100)}%
+                    <p className="text-sm text-muted mb-2">
+                      {module === "news" ? "Trust Score" : "Authenticity Score"}
                     </p>
+                    <p className={`text-4xl font-bold ${getScoreColor(module === "news" ? (analysis.trust_score || 0) : (analysis.overall_confidence || 0) * 100)}`}>
+                      {module === "news" 
+                        ? `${Math.round(analysis.trust_score || 0)}%`
+                        : `${Math.round((analysis.overall_confidence || 0) * 100)}%`
+                      }
+                    </p>
+                    {module === "news" && analysis.confidence && (
+                      <p className="text-xs text-muted mt-1">
+                        Confidence: {Math.round(analysis.confidence * 100)}%
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -208,7 +218,10 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
                   <div className="text-center">
                     <p className="text-sm text-muted mb-2">Verdict</p>
                     <p className="text-sm font-medium text-text mt-2 capitalize">
-                      {analysis.overall_verdict?.replace(/_/g, ' ') || "Pending"}
+                      {module === "news" 
+                        ? (analysis.verdict?.replace(/_/g, ' ') || "Pending")
+                        : (analysis.overall_verdict?.replace(/_/g, ' ') || "Pending")
+                      }
                     </p>
                   </div>
                 </CardContent>
@@ -216,14 +229,16 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
             </div>
 
             {/* Verdict */}
-            {analysis.overall_verdict && (
+            {(module === "news" ? analysis.verdict : analysis.overall_verdict) && (
               <Card>
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold text-text mb-3 flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-primary" />
                     Verdict
                   </h3>
-                  <p className="text-text-secondary">{analysis.verdict}</p>
+                  <p className="text-text-secondary">
+                    {module === "news" ? analysis.verdict : analysis.verdict}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -316,7 +331,7 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
                         Download PDF Report
                       </Button>
                     )}
-                    <Button variant="secondary" onClick={() => { navigator.clipboard.writeText(JSON.stringify(report, null, 2)); alert("Report JSON copied!"); }}>
+                    <Button variant="secondary" onClick={() => { navigator.clipboard.writeText(JSON.stringify(report.report_data || report, null, 2)); alert("Report JSON copied!"); }}>
                       <Copy className="w-4 h-4 mr-2" />
                       Copy JSON
                     </Button>

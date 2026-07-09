@@ -79,6 +79,8 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     CLAUDE_API_KEY: Optional[str] = None
     CLAUDE_MODEL: str = "claude-3-haiku-20240307"
+    NEMOTRON_API_KEY: Optional[str] = None
+    NEMOTRON_MODEL: str = "nemotron-4-340b-instruct"
     LLM_PROVIDER: Literal["gemini", "openai", "claude", "none"] = "none"
     LLM_TEMPERATURE: float = 0.1
     LLM_MAX_TOKENS: int = 4096
