@@ -66,19 +66,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string): Promise<AuthResult> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (error) {
-        return { success: false, error: error.message };
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        return {
+          success: false,
+          error: result?.message || result?.error?.message || "Invalid email or password",
+        };
+      }
+
+      if (result.session?.access_token) {
+        apiClient.setToken(result.session.access_token);
+      }
+
+      // Set backend session into Supabase so getSession/onAuthStateChange see it immediately
+      try {
+        const backendSession = result.session;
+        if (backendSession?.access_token && backendSession?.refresh_token) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: backendSession.access_token,
+            refresh_token: backendSession.refresh_token,
+          });
+          if (!error && data.session?.user) {
+            setState({ user: data.session.user, session: data.session, loading: false });
+            syncToken(data.session);
+          }
+        }
+      } catch {
+        // best effort
       }
 
       return { success: true };
     } catch (err: any) {
       console.error("SignIn error:", err);
-      return { success: false, error: err.message || "Login failed" };
+      return { success: false, error: err.message || "Login failed. Please try again." };
     }
   };
 
@@ -107,32 +135,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fullName: string
   ): Promise<AuthResult> => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: {
-          data: {
-            full_name: fullName.trim(),
-          },
-        },
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, full_name: fullName }),
       });
 
-      if (error) {
-        console.error("Supabase signup error full:", {
-          message: error.message,
-          name: error.name,
-          status: error.status,
-          code: error.code,
-          error,
-        });
+      const result = await response.json();
 
+      if (!response.ok || !result.success) {
         return {
           success: false,
-          error:
-            error.message && error.message !== "{}"
-              ? error.message
-              : "Registration failed. Check browser console for Supabase error details.",
+          error: result?.error?.message || result?.message || "Registration failed",
         };
+      }
+
+      // Best-effort: set the returned session in Supabase so getSession/onAuthStateChange see it
+      try {
+        const backendSession = result.session;
+        if (backendSession?.access_token && backendSession?.refresh_token) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: backendSession.access_token,
+            refresh_token: backendSession.refresh_token,
+          });
+          if (!error && data.session?.user) {
+            setState({ user: data.session.user, session: data.session, loading: false });
+            syncToken(data.session);
+          }
+        }
+      } catch {
+        // Ignore sync errors; do not block registration success
       }
 
       return { success: true };
