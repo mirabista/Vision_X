@@ -47,7 +47,7 @@ export default function UnifiedAnalyzePage() {
     // Redirect to appropriate analysis page
     if (data.analysis_id || data.image_analysis_id || data.news_analysis_id) {
       const analysisId = data.analysis_id || data.image_analysis_id || data.news_analysis_id;
-      const path = selectedType === "image" ? `/analyze/${analysisId}` : `/news/analyze/${analysisId}`;
+      const path = selectedType === "news" ? `/news/analyze/${analysisId}` : `/analyze/${analysisId}`;
       setTimeout(() => {
         router.push(path);
       }, 1500);
@@ -148,7 +148,10 @@ export default function UnifiedAnalyzePage() {
             )}
 
             {selectedType === "video" && (
-              <VideoUploadForm />
+              <VideoUploadForm
+                onComplete={handleVerificationComplete}
+                onError={setError}
+              />
             )}
 
             {selectedType === "document" && (

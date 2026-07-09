@@ -61,7 +61,8 @@ class APIClient {
 
         if (!response.ok) {
           const error = await response.json().catch(() => ({ detail: "Request failed" }));
-          throw new Error(error.detail || `HTTP ${response.status}`);
+          const detail = error?.detail || error?.error?.message || error?.error?.message?.message;
+          throw new Error(typeof detail === "string" ? detail : `HTTP ${response.status}`);
         }
 
         return response.json();
@@ -103,28 +104,49 @@ class APIClient {
     }
   }
 
+  private async applySession(session?: { access_token?: string; refresh_token?: string } | null) {
+    if (!session?.access_token || !session?.refresh_token) {
+      return;
+    }
+
+    this.setToken(session.access_token);
+
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      await supabase.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+    } catch (error) {
+      console.error("Failed to sync Supabase session:", error);
+    }
+  }
+
   // ===========================================
   // AUTH
   // ===========================================
   async register(email: string, password: string, fullName: string) {
-    // Auth endpoints need to be verified in backend
-    return this.request<{ success: boolean; message: string; user: any; session: any }>(
+    const result = await this.request<{ success: boolean; message: string; user: any; session: any }>(
       "/api/auth/register",
       {
         method: "POST",
         body: JSON.stringify({ email, password, full_name: fullName }),
       }
     );
+    await this.applySession(result.session);
+    return result;
   }
 
   async login(email: string, password: string) {
-    return this.request<{ success: boolean; message: string; user: any; session: any }>(
+    const result = await this.request<{ success: boolean; message: string; user: any; session: any }>(
       "/api/auth/login",
       {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }
     );
+    await this.applySession(result.session);
+    return result;
   }
 
   async logout() {
@@ -226,8 +248,9 @@ class APIClient {
     if (params?.module) searchParams.set("module", params.module);
     if (params?.status) searchParams.set("status", params.status);
 
+    const query = searchParams.toString();
     return this.request<{ success: boolean; analyses: any[]; count: number }>(
-      `/api/v1/analysis/analyses?${searchParams.toString()}`
+      `/api/v1/analysis/analyses${query ? `?${query}` : ""}`
     );
   }
 
@@ -393,6 +416,27 @@ class APIClient {
 
   async getNewsDashboard() {
     return this.request<{ success: boolean; stats: any }>("/api/v1/news/dashboard");
+  }
+
+  // ===========================================
+  // AI RUNTIME / HEALTH
+  // ===========================================
+  async getAIModels() {
+    return { models: [] };
+  }
+
+  async getAIRuntimeHealth() {
+    const health = await this.request<{ status: string; components?: Record<string, any> }>("/health");
+    return {
+      health: Object.entries(health.components || {}).map(([name, value]) => ({
+        model_id: name,
+        ...(value as Record<string, any>),
+      })),
+    };
+  }
+
+  async getAIRuntimeMetrics() {
+    return { instances: [] };
   }
 
   // ===========================================

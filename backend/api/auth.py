@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from backend.core.logging import get_logger
 from backend.core.exceptions import ValidationError, AuthenticationError
+from backend.api.dependencies import verify_supabase_token
 
 logger = get_logger(__name__)
 
@@ -290,17 +291,9 @@ async def update_profile(request: Request, data: UpdateProfileRequest):
         
         token = auth_header[7:]
         
-        # Verify token by decoding locally
-        import json, base64
-        parts = token.split('.')
-        if len(parts) != 3:
-            raise AuthenticationError(message="Invalid token format")
-        padded = parts[1] + '=' * (4 - len(parts[1]) % 4) if len(parts[1]) % 4 else parts[1]
-        payload = json.loads(base64.urlsafe_b64decode(padded))
-        user_id = payload.get("sub")
+        payload = verify_supabase_token(token)
+        user_id = payload["sub"]
         user_email = payload.get("email", "")
-        if not user_id:
-            raise AuthenticationError(message="Invalid token")
         
         # Update profile in Supabase profiles table
         supabase = get_supabase_client()

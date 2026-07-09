@@ -8,6 +8,8 @@ from __future__ import annotations
 from typing import Optional, Dict, Any, List
 from pathlib import Path
 
+from supabase import create_client
+
 from backend.core.logging import get_logger
 from backend.core.exceptions import StorageError
 
@@ -29,6 +31,17 @@ class StorageRepository:
         self._upload_bucket = "uploads"
         self._reports_bucket = "visionx-reports"
         self._thumbnails_bucket = "thumbnails"
+        self._client = None
+
+    def _get_client(self):
+        if self._client is None:
+            import os
+            supabase_url = os.getenv("SUPABASE_URL")
+            supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
+            if not supabase_url or not supabase_key:
+                raise StorageError(message="Supabase storage is not configured")
+            self._client = create_client(supabase_url, supabase_key)
+        return self._client
     
     async def upload(
         self,
@@ -50,11 +63,14 @@ class StorageRepository:
             File URL or path
         """
         try:
-            # TODO: Implement with Supabase Storage client
-            # For now, return placeholder
-            file_url = f"https://placeholder.supabase.co/storage/{bucket}/{path}"
+            client = self._get_client()
+            response = client.storage.from_(bucket).upload(path, file, file_options={"content-type": content_type})
+            if hasattr(response, "path") and response.path:
+                public_url = client.storage.from_(bucket).get_public_url(response.path)
+                logger.info(f"Uploaded file to {bucket}/{path}")
+                return public_url
             logger.info(f"Uploaded file to {bucket}/{path}")
-            return file_url
+            return f"https://{bucket}/{path}"
         except Exception as e:
             logger.error(f"Failed to upload file to {bucket}/{path}: {e}")
             raise StorageError(message=f"Failed to upload file: {e}") from e
@@ -96,8 +112,11 @@ class StorageRepository:
             File content as bytes
         """
         try:
-            # TODO: Implement with Supabase Storage client
-            return b""
+            client = self._get_client()
+            response = client.storage.from_(bucket).download(path)
+            if hasattr(response, "content"):
+                return response.content
+            return response
         except Exception as e:
             logger.error(f"Failed to download file from {bucket}/{path}: {e}")
             raise StorageError(message=f"Failed to download file: {e}") from e
@@ -111,7 +130,8 @@ class StorageRepository:
             path: Storage path
         """
         try:
-            # TODO: Implement with Supabase Storage client
+            client = self._get_client()
+            client.storage.from_(bucket).remove([path])
             logger.info(f"Deleted file from {bucket}/{path}")
         except Exception as e:
             logger.error(f"Failed to delete file from {bucket}/{path}: {e}")
@@ -129,8 +149,8 @@ class StorageRepository:
             Public URL
         """
         try:
-            # TODO: Implement with Supabase Storage client
-            return f"https://placeholder.supabase.co/storage/{bucket}/{path}"
+            client = self._get_client()
+            return client.storage.from_(bucket).get_public_url(path)
         except Exception as e:
             logger.error(f"Failed to get URL for {bucket}/{path}: {e}")
             raise StorageError(message=f"Failed to get URL: {e}") from e
@@ -153,8 +173,8 @@ class StorageRepository:
             Signed URL
         """
         try:
-            # TODO: Implement with Supabase Storage client
-            return f"https://placeholder.supabase.co/storage/{bucket}/{path}?signed=true"
+            client = self._get_client()
+            return client.storage.from_(bucket).create_signed_url(path, expires_in_seconds)
         except Exception as e:
             logger.error(f"Failed to generate signed URL for {bucket}/{path}: {e}")
             raise StorageError(message=f"Failed to generate signed URL: {e}") from e
@@ -177,8 +197,9 @@ class StorageRepository:
             List of file metadata
         """
         try:
-            # TODO: Implement with Supabase Storage client
-            return []
+            client = self._get_client()
+            response = client.storage.from_(bucket).list(path or "")
+            return response if isinstance(response, list) else []
         except Exception as e:
             logger.error(f"Failed to list files in {bucket}/{path}: {e}")
             raise StorageError(message=f"Failed to list files: {e}") from e

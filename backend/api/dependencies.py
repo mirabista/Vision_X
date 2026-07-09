@@ -5,7 +5,6 @@ FastAPI dependency injection for authentication, database sessions, and more.
 
 from __future__ import annotations
 
-import os
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
@@ -21,6 +20,29 @@ logger = get_logger(__name__)
 
 # Bearer token scheme
 bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def verify_supabase_token(token: str) -> dict:
+    """Verify a Supabase access token and return the authenticated user data."""
+    try:
+        result = get_supabase_client().auth.get_user(token)
+    except Exception as exc:
+        logger.warning("Supabase token verification failed: %s", exc)
+        raise InvalidTokenError(message="Invalid or expired token") from exc
+
+    user = getattr(result, "user", None)
+    if user is None:
+        raise InvalidTokenError(message="Invalid or expired token")
+
+    user_id = getattr(user, "id", None)
+    if not user_id:
+        raise InvalidTokenError(message="Invalid token")
+
+    return {
+        "sub": user_id,
+        "email": getattr(user, "email", "") or "",
+        "user": user,
+    }
 
 
 async def get_current_user(
@@ -39,42 +61,10 @@ async def get_current_user(
         raise AuthenticationError(message="Authentication required")
 
     token = credentials.credentials
-    
-    # Decode JWT locally without signature verification
-    # The token was already issued by Supabase Auth during login
-    # In a trusted backend environment with service_role key, this is safe
-    # Supabase uses ES256 which requires PEM-formatted keys we don't have,
-    # so we decode without verification and check expiration manually
-    try:
-        import json, base64, time as time_module
-        parts = token.split('.')
-        if len(parts) != 3:
-            raise InvalidTokenError(message="Invalid JWT format")
-        
-        # Pad for base64 decoding
-        padded = parts[1] + '=' * (4 - len(parts[1]) % 4) if len(parts[1]) % 4 else parts[1]
-        payload_data = json.loads(base64.urlsafe_b64decode(padded))
-        
-        user_id = payload_data.get("sub")
-        if not user_id:
-            logger.warning("Token validation failed: no sub claim found")
-            raise InvalidTokenError()
-        
-        # Check expiration
-        exp = payload_data.get("exp", 0)
-        if time_module.time() > exp:
-            logger.warning("Token validation failed: token expired")
-            raise InvalidTokenError(message="Token expired")
-        
-        # Set correlation ID from user ID
-        set_correlation_id(user_id)
-        
-        return user_id
-    except InvalidTokenError:
-        raise
-    except Exception as e:
-        logger.error(f"Token validation failed: {e}")
-        raise InvalidTokenError(message="Token validation failed")
+    payload = verify_supabase_token(token)
+    user_id = payload["sub"]
+    set_correlation_id(user_id)
+    return user_id
 
 
 async def get_optional_user(

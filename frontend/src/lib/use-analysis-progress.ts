@@ -56,9 +56,10 @@ export function useAnalysisProgress(analysisId: string | null, module: "image" |
           ? await apiClient.getNewsAnalysis(analysisId)
           : await apiClient.getAnalysis(analysisId);
         const job = data.analysis || data.job || data;
+        const normalizedStatus = String(job.status || "pending").toLowerCase();
 
         setJobData(job);
-        setStatus(job.status || "PENDING");
+        setStatus(normalizedStatus);
         setProgress(job.progress || 0);
         setError(job.error_message || null);
 
@@ -71,12 +72,12 @@ export function useAnalysisProgress(analysisId: string | null, module: "image" |
         }
 
         // Terminal states
-        if (job.status === "COMPLETED" && job.report_id) {
+        if (normalizedStatus === "completed" && job.report_id) {
           stopPolling();
           setTimeout(() => {
             router.push(`/reports/${job.report_id}`);
           }, 500);
-        } else if (job.status === "FAILED" || job.status === "CANCELLED") {
+        } else if (normalizedStatus === "failed" || normalizedStatus === "cancelled") {
           stopPolling();
         }
       } catch (e: any) {
