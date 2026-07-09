@@ -82,25 +82,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string): Promise<AuthResult> => {
+  // const signUp = async (email: string, password: string, fullName: string): Promise<AuthResult> => {
+  //   try {
+  //     const { data, error } = await supabase.auth.signUp({
+  //       email,
+  //       password,
+  //       options: { data: { full_name: fullName } },
+  //     });
+
+  //     if (error) {
+  //       return { success: false, error: error.message || "Registration failed" };
+  //     }
+
+  //     return { success: true };
+  //   } catch (err: any) {
+  //     console.error("SignUp error:", err);
+  //     return { success: false, error: err.message || "Registration failed" };
+  //   }
+  // };
+
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string
+  ): Promise<AuthResult> => {
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim().toLowerCase(),
         password,
-        options: { data: { full_name: fullName } },
+        options: {
+          data: {
+            full_name: fullName.trim(),
+          },
+        },
       });
 
       if (error) {
-        return { success: false, error: error.message || "Registration failed" };
+        console.error("Supabase signup error full:", {
+          message: error.message,
+          name: error.name,
+          status: error.status,
+          code: error.code,
+          error,
+        });
+
+        return {
+          success: false,
+          error:
+            error.message && error.message !== "{}"
+              ? error.message
+              : "Registration failed. Check browser console for Supabase error details.",
+        };
       }
 
       return { success: true };
     } catch (err: any) {
-      console.error("SignUp error:", err);
-      return { success: false, error: err.message || "Registration failed" };
+      console.error("SignUp exception:", err);
+
+      return {
+        success: false,
+        error:
+          err?.message && err.message !== "{}"
+            ? err.message
+            : "Registration failed. Please check your Supabase configuration.",
+      };
     }
   };
-
   const signOut = async () => {
     await supabase.auth.signOut();
   };
