@@ -82,26 +82,19 @@ async def register(request: RegisterRequest):
         if result.user is None:
             raise ValidationError(message="Registration failed")
         
-        # Create user profile in database if needed
+        # Create user profile in database using direct Supabase call
         try:
-            from backend.database.session import get_session
-            from backend.models.user import UserProfile
-            
-            async for session in get_session():
-                from sqlalchemy import select
-                stmt = select(UserProfile).where(UserProfile.id == result.user.id)
-                existing = (await session.execute(stmt)).scalar_one_or_none()
-                
-                if not existing:
-                    profile = UserProfile(
-                        id=result.user.id,
-                        email=request.email,
-                        full_name=request.full_name,
-                    )
-                    session.add(profile)
-                    await session.commit()
+            supabase.schema("public").table("profiles").upsert({
+                "id": result.user.id,
+                "email": request.email,
+                "full_name": request.full_name,
+                "role": "user",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }).execute()
+            logger.info(f"[Register] Profile created for user {result.user.id}")
         except Exception as e:
-            logger.warning(f"Profile creation failed (non-critical): {e}")
+            logger.warning(f"[Register] Profile creation failed: {e}")
         
         return AuthResponse(
             success=True,

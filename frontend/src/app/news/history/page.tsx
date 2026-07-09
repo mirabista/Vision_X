@@ -131,11 +131,19 @@ export default function NewsHistoryPage() {
                         <span className="capitalize">{analysis.input_type}</span>
                         <span>•</span>
                         <span>{new Date(analysis.created_at).toLocaleDateString()}</span>
-                        {analysis.authenticity_score && (
+                        {analysis.trust_score && (
                           <>
                             <span>•</span>
                             <span className="font-medium text-text">
-                              {analysis.authenticity_score}% authenticity
+                              {Math.round(analysis.trust_score)}% trust
+                            </span>
+                          </>
+                        )}
+                        {analysis.confidence && (
+                          <>
+                            <span>•</span>
+                            <span className="font-medium text-text">
+                              {Math.round(analysis.confidence * 100)}% confidence
                             </span>
                           </>
                         )}

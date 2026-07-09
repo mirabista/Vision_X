@@ -111,20 +111,20 @@ export default function NewsReportsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold text-text">
-                          {report.title || `Report ${report.id.slice(0, 8)}`}
+                          {report.report_data?.verdict_details?.verdict || `Report ${report.id.slice(0, 8)}`}
                         </h3>
-                        <Badge variant={report.risk_level === "minimal" || report.risk_level === "low" ? "success" : report.risk_level === "medium" ? "warning" : "danger"}>
-                          {report.risk_level || "medium"} risk
+                        <Badge variant={(report.report_data?.verdict_details?.risk_level || report.risk_level) === "minimal" || (report.report_data?.verdict_details?.risk_level || report.risk_level) === "low" ? "success" : (report.report_data?.verdict_details?.risk_level || report.risk_level) === "medium" ? "warning" : "danger"}>
+                          {report.report_data?.verdict_details?.risk_level || report.risk_level || "medium"} risk
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted">
-                        <span>Authenticity Score: <span className="font-medium text-text">{report.authenticity_score || 0}%</span></span>
+                        <span>Trust Score: <span className="font-medium text-text">{Math.round(report.report_data?.verdict_details?.trust_score || 0)}%</span></span>
                         <span>•</span>
-                        <span>{new Date(report.generated_at).toLocaleDateString()}</span>
+                        <span>{new Date(report.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Link href={`/news/analyze/${report.news_analysis_id}`}>
+                      <Link href={`/news/analyze/${report.analysis_id}`}>
                         <Button variant="ghost" size="sm" className="gap-1">
                           <ExternalLink className="w-4 h-4" />
                           View Analysis

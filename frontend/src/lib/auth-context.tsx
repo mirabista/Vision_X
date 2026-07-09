@@ -66,41 +66,121 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string): Promise<AuthResult> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (error) {
-        return { success: false, error: error.message };
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        return {
+          success: false,
+          error: result?.message || result?.error?.message || "Invalid email or password",
+        };
+      }
+
+      if (result.session?.access_token) {
+        apiClient.setToken(result.session.access_token);
+      }
+
+      // Set backend session into Supabase so getSession/onAuthStateChange see it immediately
+      try {
+        const backendSession = result.session;
+        if (backendSession?.access_token && backendSession?.refresh_token) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: backendSession.access_token,
+            refresh_token: backendSession.refresh_token,
+          });
+          if (!error && data.session?.user) {
+            setState({ user: data.session.user, session: data.session, loading: false });
+            syncToken(data.session);
+          }
+        }
+      } catch {
+        // best effort
       }
 
       return { success: true };
     } catch (err: any) {
       console.error("SignIn error:", err);
-      return { success: false, error: err.message || "Login failed" };
+      return { success: false, error: err.message || "Login failed. Please try again." };
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string): Promise<AuthResult> => {
+  // const signUp = async (email: string, password: string, fullName: string): Promise<AuthResult> => {
+  //   try {
+  //     const { data, error } = await supabase.auth.signUp({
+  //       email,
+  //       password,
+  //       options: { data: { full_name: fullName } },
+  //     });
+
+  //     if (error) {
+  //       return { success: false, error: error.message || "Registration failed" };
+  //     }
+
+  //     return { success: true };
+  //   } catch (err: any) {
+  //     console.error("SignUp error:", err);
+  //     return { success: false, error: err.message || "Registration failed" };
+  //   }
+  // };
+
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string
+  ): Promise<AuthResult> => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } },
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, full_name: fullName }),
       });
 
-      if (error) {
-        return { success: false, error: error.message || "Registration failed" };
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        return {
+          success: false,
+          error: result?.error?.message || result?.message || "Registration failed",
+        };
+      }
+
+      // Best-effort: set the returned session in Supabase so getSession/onAuthStateChange see it
+      try {
+        const backendSession = result.session;
+        if (backendSession?.access_token && backendSession?.refresh_token) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: backendSession.access_token,
+            refresh_token: backendSession.refresh_token,
+          });
+          if (!error && data.session?.user) {
+            setState({ user: data.session.user, session: data.session, loading: false });
+            syncToken(data.session);
+          }
+        }
+      } catch {
+        // Ignore sync errors; do not block registration success
       }
 
       return { success: true };
     } catch (err: any) {
-      console.error("SignUp error:", err);
-      return { success: false, error: err.message || "Registration failed" };
+      console.error("SignUp exception:", err);
+
+      return {
+        success: false,
+        error:
+          err?.message && err.message !== "{}"
+            ? err.message
+            : "Registration failed. Please check your Supabase configuration.",
+      };
     }
   };
-
   const signOut = async () => {
     await supabase.auth.signOut();
   };

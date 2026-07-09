@@ -383,7 +383,7 @@ class APIClient {
   }
 
   async getNewsAnalysis(analysisId: string) {
-    return this.request<{ success: boolean; analysis: any }>(
+    return this.request<{ success: boolean; analysis: any; agent_results?: any[]; sources?: any[]; claims?: any[]; report?: any }>(
       `/api/v1/news/analysis/${analysisId}`
     );
   }

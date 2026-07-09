@@ -13,6 +13,6 @@ const UnifiedAnalyzePage = dynamic(() => import("@/components/analysis/unified-a
   ssr: false,
 });
 
-export default function AnalyzePage() {
+export default function AnalyzePage() { 
   return <UnifiedAnalyzePage />;
 }
