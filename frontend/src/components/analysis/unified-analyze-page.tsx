@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import ImageUploadForm from "@/components/analysis/forms/image-upload-form";
 import NewsUploadForm from "@/components/analysis/forms/news-upload-form";
-import VideoUploadForm from "@/components/analysis/forms/video-upload-form";
+import VideoUploadForm from "@/components/analysis/forms/video-upload-form-real";
 
 type InputMode = "url" | "article" | "screenshot" | "headline";
 
@@ -45,8 +45,8 @@ export default function UnifiedAnalyzePage() {
     setResult(data);
     
     // Redirect to appropriate analysis page
-    if (data.analysis_id || data.image_analysis_id || data.news_analysis_id) {
-      const analysisId = data.analysis_id || data.image_analysis_id || data.news_analysis_id;
+    if (data.analysis_id || data.image_analysis_id || data.news_analysis_id || data.analysisId) {
+      const analysisId = data.analysis_id || data.image_analysis_id || data.news_analysis_id || data.analysisId;
       const path = selectedType === "image" ? `/analyze/${analysisId}` : `/news/analyze/${analysisId}`;
       setTimeout(() => {
         router.push(path);

@@ -119,6 +119,7 @@ from backend.api.reports import router as reports_router
 from backend.api.dashboard import router as dashboard_router
 from backend.api.incidents import router as incidents_router
 from backend.api.news import router as news_router
+from backend.api.video import router as video_router
 from backend.api.auth import router as auth_router
 from backend.api.analysis import uploads_router
 from backend.events.event_bus import event_bus
@@ -163,6 +164,7 @@ def create_app() -> FastAPI:
     app.include_router(dashboard_router)
     app.include_router(incidents_router)
     app.include_router(news_router)
+    app.include_router(video_router)
     app.include_router(uploads_router)
 
     @app.get("/health")

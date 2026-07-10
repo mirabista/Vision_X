@@ -396,6 +396,50 @@ class APIClient {
   }
 
   // ===========================================
+  // VIDEO VERIFICATION
+  // ===========================================
+  async getVideoAnalyses(params?: { limit?: number; offset?: number; status?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.offset) searchParams.set("offset", params.offset.toString());
+    if (params?.status) searchParams.set("status", params.status);
+
+    return this.request<{ success: boolean; analyses: any[]; count: number }>(
+      `/api/video/history?${searchParams.toString()}`
+    );
+  }
+
+  async getVideoAnalysis(analysisId: string) {
+    return this.request<{ success: boolean; analysis: any; frames: any[]; evidence: any[]; audio: any; agent_results: any[]; report: any }>(
+      `/api/video/analysis/${analysisId}`
+    );
+  }
+
+  async deleteVideoAnalysis(analysisId: string) {
+    return this.request<{ success: boolean; message: string }>(`/api/video/analysis/${analysisId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async getVideoReports(params?: { limit?: number; offset?: number }) {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set("limit", params.limit.toString());
+    if (params?.offset) searchParams.set("offset", params.offset.toString());
+
+    return this.request<{ success: boolean; reports: any[]; count: number }>(
+      `/api/video/reports?${searchParams.toString()}`
+    );
+  }
+
+  async getVideoReport(analysisId: string) {
+    return this.request<{ success: boolean; report: any }>(`/api/video/report/${analysisId}`);
+  }
+
+  async getVideoDashboard() {
+    return this.request<{ success: boolean; stats: any }>("/api/video/dashboard");
+  }
+
+  // ===========================================
   // UPLOADS
   // ===========================================
   async getUploads(params?: { limit?: number; offset?: number; search?: string }) {
