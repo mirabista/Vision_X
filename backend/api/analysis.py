@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-import logging
+from pathlib import Path
 from typing import Optional
 from datetime import datetime
 
@@ -17,8 +17,11 @@ from fastapi.responses import StreamingResponse
 from backend.core.exceptions import NotFoundError, ValidationError
 from backend.core.logging import get_logger
 from backend.api.dependencies import get_current_user
+from backend.api.deps import get_user_from_query_token
 from backend.database.supabase_client import get_supabase_client
+from backend.events.event_bus import event_bus
 from backend.services.image_analysis_service import image_analysis_service
+from backend.services.video_analysis_service import video_analysis_service
 
 logger = get_logger(__name__)
 
@@ -55,21 +58,28 @@ async def start_analysis(
         if not input_content:
             raise ValidationError(message="No input content provided")
 
-        # For file-based analysis, use the synchronous service
+        # For file-based analysis, dispatch to the correct service
         if input_type and input_type.startswith("file:"):
-            result = image_analysis_service.analyze_image(
-                user_id=user_id,
-                image_path=input_content,
-                title=title,
-            )
+            if module == "video" or input_type == "file:video":
+                result = await video_analysis_service.analyze_video(
+                    user_id=user_id,
+                    video_path=input_content,
+                    title=title,
+                )
+            else:
+                result = image_analysis_service.analyze_image(
+                    user_id=user_id,
+                    image_path=input_content,
+                    title=title,
+                )
             return {
                 "success": True,
                 "analysis_id": result["analysis_id"],
-                "status": "completed",
-                "trust_score": result["trust_score"],
-                "confidence": result["confidence"],
-                "risk_level": result["risk_level"],
-                "verdict": result["verdict"],
+                "status": result.get("status", "completed"),
+                "trust_score": result.get("trust_score"),
+                "confidence": result.get("confidence"),
+                "risk_level": result.get("risk_level"),
+                "verdict": result.get("verdict"),
                 "message": "Analysis completed",
             }
 
@@ -125,7 +135,8 @@ async def upload_and_analyze(
         # Save file to uploads directory for pipeline access
         upload_dir = os.path.join(os.getcwd(), "uploads")
         os.makedirs(upload_dir, exist_ok=True)
-        safe_filename = f"{user_id[:8]}_{int(datetime.now().timestamp())}_{file.filename}"
+        original_filename = Path(file.filename or "upload.bin").name
+        safe_filename = f"{user_id[:8]}_{int(datetime.now().timestamp())}_{original_filename}"
         file_path = os.path.join(upload_dir, safe_filename)
         with open(file_path, "wb") as f:
             f.write(content)
@@ -134,7 +145,7 @@ async def upload_and_analyze(
         try:
             _client().table("uploads").insert({
                 "user_id": user_id,
-                "original_filename": file.filename,
+                "original_filename": original_filename,
                 "storage_path": file_path,
                 "public_url": file_path,
                 "mime_type": content_type,
@@ -146,11 +157,18 @@ async def upload_and_analyze(
             logger.warning(f"Upload record creation failed: {e}")
 
         # Perform analysis synchronously
-        result = image_analysis_service.analyze_image(
-            user_id=user_id,
-            image_path=file_path,
-            title=title or file.filename,
-        )
+        if module == "video" or (content_type and "video" in content_type):
+            result = await video_analysis_service.analyze_video(
+                user_id=user_id,
+                video_path=file_path,
+                title=title or original_filename,
+            )
+        else:
+            result = image_analysis_service.analyze_image(
+                user_id=user_id,
+                image_path=file_path,
+                title=title or original_filename,
+            )
 
         return {
             "success": True,
@@ -160,7 +178,7 @@ async def upload_and_analyze(
             "confidence": result["confidence"],
             "risk_level": result["risk_level"],
             "verdict": result["verdict"],
-            "message": f"File '{file.filename}' analyzed successfully",
+            "message": f"File '{original_filename}' analyzed successfully",
         }
     except ValidationError:
         raise
@@ -240,6 +258,7 @@ async def get_analysis_status(
 
 
 @router.get("/jobs")
+@router.get("/analyses")
 async def list_jobs(
     user_id: str = Depends(get_current_user),
     module: Optional[str] = Query(None),
@@ -326,12 +345,24 @@ async def cancel_analysis(
 async def stream_analysis_events(
     analysis_id: str,
     request: Request,
-    user_id: str = Depends(get_current_user),
+    token: Optional[str] = Query(None),
 ):
     """Server-Sent Events for analysis progress."""
+    user = await get_user_from_query_token(token)
+    user_id = user["sub"]
+
+    result = _client().table("analysis_jobs").select("id").eq("id", analysis_id).eq("user_id", user_id).execute()
+    if not result.data:
+        raise NotFoundError(resource="Analysis", resource_id=analysis_id)
+
     async def event_generator():
         yield f"event: connected\ndata: {analysis_id}\n\n"
-        yield f"event: completed\ndata: {{}}\n\n"
+        queue = await event_bus.subscribe_sse(analysis_id)
+        try:
+            while not await request.is_disconnected():
+                yield await queue.get()
+        finally:
+            await event_bus.unsubscribe_sse(analysis_id, queue)
 
     return StreamingResponse(
         event_generator(),

@@ -45,9 +45,15 @@ export default function UnifiedAnalyzePage() {
     setResult(data);
     
     // Redirect to appropriate analysis page
+<<<<<<< HEAD
     if (data.analysis_id || data.image_analysis_id || data.news_analysis_id || data.analysisId) {
       const analysisId = data.analysis_id || data.image_analysis_id || data.news_analysis_id || data.analysisId;
       const path = selectedType === "image" ? `/analyze/${analysisId}` : `/news/analyze/${analysisId}`;
+=======
+    if (data.analysis_id || data.image_analysis_id || data.news_analysis_id) {
+      const analysisId = data.analysis_id || data.image_analysis_id || data.news_analysis_id;
+      const path = selectedType === "news" ? `/news/analyze/${analysisId}` : `/analyze/${analysisId}`;
+>>>>>>> 1d3e6e3a998ce23ccb370911fd21097c3004c822
       setTimeout(() => {
         router.push(path);
       }, 1500);
@@ -148,7 +154,10 @@ export default function UnifiedAnalyzePage() {
             )}
 
             {selectedType === "video" && (
-              <VideoUploadForm />
+              <VideoUploadForm
+                onComplete={handleVerificationComplete}
+                onError={setError}
+              />
             )}
 
             {selectedType === "document" && (

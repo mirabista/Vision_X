@@ -6,11 +6,13 @@ uvicorn[standard]==0.34.0
 python-multipart==0.0.18
 pydantic==2.9.2
 pydantic_settings==2.6.1
+python-dotenv==1.0.1
 
 # Database
 supabase==2.11.0
 psycopg2-binary==2.9.10
 sqlalchemy==2.0.36
+asyncpg==0.30.0
 
 # Authentication
 python-jose[cryptography]==3.3.0
@@ -50,6 +52,9 @@ accelerate==1.2.1
 insightface==0.7.3
 facenet-pytorch
 opencv-contrib-python==4.10.0.84
+ffmpeg-python==0.2.0
+mediapipe==0.10.21
+faster-whisper==1.1.1
 
 # Embeddings & Search
 faiss-cpu==1.9.0
