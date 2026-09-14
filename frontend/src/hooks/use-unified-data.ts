@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { unifiedApi } from "@/lib/unified-api";
 
 // ==================== useAnalyses ====================
-export function useAnalyses(module: string = "all", params?: { limit?: number; offset?: number; status?: string }) {
+export function useAnalyses(module: string = "all", params?: { limit?: number; offset?: number; status?: string }, enabled: boolean = true) {
   const [data, setData] = useState<any[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export function useAnalyses(module: string = "all", params?: { limit?: number; o
     }
   }, [module, JSON.stringify(params)]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (enabled) load(); }, [load, enabled]);
 
   return { data, count, loading, error, refresh: load };
 }
@@ -95,7 +95,7 @@ export function usePolling(callback: () => void, intervalMs: number = 3000, enab
 }
 
 // ==================== useAnalysisDetail ====================
-export function useAnalysisDetail(module: string, id: string | undefined) {
+export function useAnalysisDetail(module: string, id: string | undefined, enabled: boolean = true) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -118,9 +118,9 @@ export function useAnalysisDetail(module: string, id: string | undefined) {
     }
   }, [module, id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (enabled) load(); }, [load, enabled]);
 
-  usePolling(load, 3000, polling && !!id);
+  usePolling(load, 3000, enabled && polling && !!id);
 
   return { data, loading, error, polling, setPolling, refresh: load };
 }

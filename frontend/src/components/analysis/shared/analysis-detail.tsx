@@ -63,7 +63,9 @@ export default function AnalysisDetail({
   const confidence = analysis.confidence || 0;
   const verdict = analysis.verdict || analysis.authenticity_level || "unknown";
   const riskLevel = analysis.risk_level || "medium";
-  const executiveSummary = analysis.executive_summary || report?.report_data?.executive_summary || "";
+  // executive_summary may be a plain string or a structured object ({verdict, confidence, risk_level, explanation, trust_score}).
+  const executiveSummaryRaw = analysis.executive_summary || report?.report_data?.executive_summary || "";
+  const executiveSummary = typeof executiveSummaryRaw === "string" ? executiveSummaryRaw : (executiveSummaryRaw?.explanation || "");
   const reportData = report?.report_data || {};
   const claims = reportData.claims || analysis.claims || [];
   const sources = reportData.sources || analysis.sources || [];

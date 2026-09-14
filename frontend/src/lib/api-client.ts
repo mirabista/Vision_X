@@ -419,7 +419,6 @@ class APIClient {
   }
 
   // ===========================================
-<<<<<<< HEAD
   // VIDEO VERIFICATION
   // ===========================================
   async getVideoAnalyses(params?: { limit?: number; offset?: number; status?: string }) {
@@ -461,7 +460,9 @@ class APIClient {
 
   async getVideoDashboard() {
     return this.request<{ success: boolean; stats: any }>("/api/video/dashboard");
-=======
+  }
+
+  // ===========================================
   // AI RUNTIME / HEALTH
   // ===========================================
   async getAIModels() {
@@ -480,7 +481,6 @@ class APIClient {
 
   async getAIRuntimeMetrics() {
     return { instances: [] };
->>>>>>> 1d3e6e3a998ce23ccb370911fd21097c3004c822
   }
 
   // ===========================================

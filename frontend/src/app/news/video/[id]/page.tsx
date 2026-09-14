@@ -18,8 +18,8 @@ import {
 
 export default function VideoAnalysisPage() {
   const { id } = useParams();
-  const { user } = useAuth();
-  const { data, loading, error, refresh, setPolling } = useAnalysisDetail("video", id as string);
+  const { user, loading: authLoading } = useAuth();
+  const { data, loading, error, refresh, setPolling } = useAnalysisDetail("video", id as string, !authLoading);
   
   const handleRefresh = () => {
     setPolling(true);
@@ -70,6 +70,8 @@ export default function VideoAnalysisPage() {
 
   const analysis = data.analysis || data;
   const report = data.report;
+  // Backend may return evidence grouped by type ({type: [...]}) or as a flat array.
+  const evidence = Array.isArray(data.evidence) ? data.evidence : Object.values(data.evidence || {}).flat();
 
   return (
     <div className="min-h-screen bg-background">
@@ -109,7 +111,7 @@ export default function VideoAnalysisPage() {
           analysis={analysis}
           report={report}
           agentResults={data.agent_results || []}
-          evidence={data.evidence || []}
+          evidence={evidence}
           frames={data.frames || []}
           audio={data.audio}
           onRefresh={refresh}

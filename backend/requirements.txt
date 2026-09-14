@@ -34,6 +34,11 @@ exifread==3.0.0
 imagehash==4.3.1
 hachoir==3.2.0
 
+# PDF / Document Verification
+PyMuPDF>=1.24.0
+pikepdf>=9.0.0
+pypdf>=5.0.0
+
 # OCR
 paddleocr==2.8.1
 easyocr==1.7.2

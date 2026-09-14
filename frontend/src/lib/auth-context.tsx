@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "./supabase";
 import { apiClient } from "./api-client";
+import { unifiedApi } from "./unified-api";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthState {
@@ -34,8 +35,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const syncToken = useCallback((session: Session | null) => {
     if (session?.access_token) {
       apiClient.setToken(session.access_token);
+      unifiedApi.setToken(session.access_token);
     } else {
       apiClient.clearToken();
+      unifiedApi.clearToken();
     }
   }, []);
 
@@ -84,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (result.session?.access_token) {
         apiClient.setToken(result.session.access_token);
+        unifiedApi.setToken(result.session.access_token);
       }
 
       // Set backend session into Supabase so getSession/onAuthStateChange see it immediately

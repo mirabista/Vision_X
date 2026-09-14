@@ -14,13 +14,13 @@ import { ModuleBadge, ModuleIcon } from "@/components/analysis/shared/module-bad
 import { Trash2, ExternalLink, Loader2, Search, Download } from "lucide-react";
 import { unifiedApi } from "@/lib/unified-api";
 
-const MODULES = ["all", "image", "news", "video"] as const;
+const MODULES = ["all", "image", "news", "video", "document"] as const;
 
 export default function UnifiedHistoryPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [module, setModule] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const { data: analyses, count, loading, error, refresh } = useAnalyses(module, { limit: 50 });
+  const { data: analyses, count, loading, error, refresh } = useAnalyses(module, { limit: 50 }, !authLoading);
 
   const handleDelete = async (m: string, id: string) => {
     if (!confirm("Are you sure you want to delete this analysis?")) return;
@@ -105,7 +105,7 @@ export default function UnifiedHistoryPage() {
             {filtered.map((analysis: any) => {
               const m = analysis.module || "image";
               const analysisId = analysis.id || analysis.analysis_id;
-              const detailPath = m === "video" ? `/news/video/${analysisId}` : `/news/analyze/${analysisId}`;
+              const detailPath = m === "video" ? `/news/video/${analysisId}` : m === "document" ? `/document/analyze/${analysisId}` : `/news/analyze/${analysisId}`;
               return (
                 <Card key={analysisId} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-5">

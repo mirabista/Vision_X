@@ -1,23 +1,23 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-context";
 import { useAnalysisDetail } from "@/hooks/use-unified-data";
 import AnalysisDetail from "@/components/analysis/shared/analysis-detail";
-import { ModuleIcon } from "@/components/analysis/shared/module-badge";
-import { Loader2, RefreshCw } from "lucide-react";
+import {
+  Loader2, RefreshCw, FileText
+} from "lucide-react";
 
-export default function UnifiedAnalysisWorkspace({ analysisId, module: moduleProp }: { analysisId: string; module?: string }) {
+export default function DocumentAnalysisPage() {
+  const { id } = useParams();
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const module = moduleProp || "image";
-  const { data, loading, error, refresh, setPolling } = useAnalysisDetail(module, analysisId, !authLoading);
+  const { data, loading, error, refresh, setPolling } = useAnalysisDetail("document", id as string, !authLoading);
 
   const handleRefresh = () => {
     setPolling(true);
@@ -45,7 +45,7 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-muted">Loading analysis...</p>
+              <p className="text-muted">Loading document analysis...</p>
             </div>
           </div>
         </div>
@@ -68,7 +68,6 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
 
   const analysis = data.analysis || data;
   const report = data.report;
-  // Backend may return evidence grouped by type ({type: [...]}) or as a flat array.
   const evidence = Array.isArray(data.evidence) ? data.evidence : Object.values(data.evidence || {}).flat();
 
   return (
@@ -80,15 +79,15 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-                <ModuleIcon module={module} className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg">
+                <FileText className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-text">
-                  {module === "news" ? "News" : module === "video" ? "Video" : "Image"} Analysis {analysisId.slice(0, 8)}...
+                  Document Analysis {id?.toString().slice(0, 8)}...
                 </h1>
                 <p className="text-sm text-muted">
-                  {analysis.title || analysis.input_content?.slice(0, 100) || "Analysis"}
+                  {analysis.original_filename || analysis.title || "Document Analysis"}
                 </p>
               </div>
             </div>
@@ -105,13 +104,11 @@ export default function UnifiedAnalysisWorkspace({ analysisId, module: modulePro
 
         {/* Evidence-Centered Analysis Detail */}
         <AnalysisDetail
-          module={module}
+          module="document"
           analysis={analysis}
           report={report}
           agentResults={data.agent_results || []}
           evidence={evidence}
-          frames={data.frames || []}
-          audio={data.audio}
           onRefresh={refresh}
         />
       </div>

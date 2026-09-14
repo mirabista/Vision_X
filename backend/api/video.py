@@ -22,7 +22,7 @@ from backend.repositories.video_repository import video_repository
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/video", tags=["video"])
+router = APIRouter(prefix="/api/video", tags=["video"])
 
 
 # Endpoints
